@@ -1,0 +1,47 @@
+name: Deploy
+on:
+  push:
+    tags:
+      - 'v[0-9]+.*'
+
+jobs:
+  build:
+    name: Build & Test
+    uses: ./.github/workflows/ccpp.yml
+
+  create-release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Get version
+        id: version
+        run: echo "::set-output name=tag=${GITHUB_REF#refs/*/}"
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+      - name: List Files
+        run: |
+          ls -laR
+      - name: Repackage as release artifacts
+        run: |
+          mkdir artifacts
+          tar czf artifacts/assimp-linux.tar.gz -C assimp-Linux-gcc .
+          tar czf artifacts/assimp-osx.tar.gz -C assimp-macOS-clang .
+          tar czf artifacts/assimp-win.tar.gz -C assimp-Windows-cl.exe .
+          tar czf artifacts/assimp-headers.tar.gz -C include .
+      - name: Create release on GitHub
+        uses: softprops/action-gh-release@v0.1.14
+        with:
+          name: ${{ github.event.repository.name }}-${{steps.version.outputs.tag}}
+          files: |
+            artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Dispatch New Release event to Assimp.Net
+        run: >
+          curl -X POST https://api.github.com/repos/StirlingLabs/Assimp.Net/dispatches
+          -H 'Authorization: token ${{secrets.DAEMON_HOOKS}}'
+          -H "Accept: application/vnd.github.v3+json"
+          --data '{"event_type":"New assimp Release","client_payload":{"tag":"${{steps.version.outputs.tag}}"}}'
