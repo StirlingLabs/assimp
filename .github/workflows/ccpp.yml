@@ -98,9 +98,6 @@ jobs:
       with:
         path: contrib
 
-    - name: Debug
-      run: ls -lR
-
     - name: Cache DX SDK
       id: dxcache
       if: contains(matrix.name, 'windows')
@@ -115,7 +112,9 @@ jobs:
       if: contains(matrix.name, 'windows') && steps.dxcache.outputs.cache-hit != 'true'
       run: |
         curl -s -o DXSDK_Jun10.exe --location https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe
-        cmd.exe /c start /wait .\DXSDK_Jun10.exe /U /O /F /S /P "${{ github.workspace }}\DX_SDK"
+        .\DXSDK_Jun10.exe /U /O /F /S /P "${{ github.workspace }}\DX_SDK"
+        dir /w
+      shell: cmd
 
     - name: Set macOS specific CMake arguments
       if: runner.os == 'macOS'
