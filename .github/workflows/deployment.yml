@@ -5,32 +5,90 @@ on:
       - 'v[0-9]+.*'
 
 jobs:
+  meta:
+    name: Collect Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      project: ${{ steps.name.outputs.project }}
+      fullVersion: ${{ steps.version.outputs.full }}
+      majorVersion: ${{ steps.version.outputs.major }}
+      linuxName: lib${{ steps.name.outputs.project }}.so.${{ steps.version.outputs.major }}
+      macName: lib${{ steps.name.outputs.project }}.${{ steps.version.outputs.major }}.dylib
+      winName: ${{ steps.name.outputs.project }}-${{ steps.version.outputs.major }}.dll
+    steps:
+
+      - name: Get Name
+        id: name
+        run: |
+          echo "::set-output name=project::${GITHUB_REPOSITORY#*/}"
+
+      - name: Good Version
+        id: version
+        if: |
+            github.ref_type == 'tag' &&
+            startsWith(github.ref_name, 'v')
+        run: |
+          fullVersion=${version:1}
+          arrayVersion=(${fullVersion//./ })
+          majorVersion=${arrayVersion[0]}
+          echo $fullVersion -> major ${arrayVersion[0]} minor ${arrayVersion[1]} patch ${arrayVersion[2]} package ${arrayVersion[3]}
+          if [[ $majorVersion =~ ^-?[0-9]+$ ]]; then
+            echo "::set-output name=full::$fullVersion"
+            echo "::set-output name=major::$majorVersion"
+          else
+            echo "{{ steps.name.outputs.project }} version ${version:1:2}, derived from -- $version -- is not numeric."
+            exit 1
+          fi
+        env:
+          version: ${{ github.ref_name }}
+
+      - name: Bad Version
+        if: |
+            github.ref_type != 'tag' ||
+            !startsWith(github.ref_name, 'v')
+        run: |
+          echo "The build script expects tag to be in the format v14.0.6"
+          exit 1
+
   build:
     name: Build & Test
     uses: ./.github/workflows/ccpp.yml
 
   create-release:
     name: Create Release
-    needs: build
+    needs:
+      - meta
+      - build
     runs-on: ubuntu-latest
+    env:
+      folder: artifacts
+      project: ${{ needs.meta.outputs.project }}
+      filename: ${{ needs.meta.outputs.project }}-${{ needs.meta.outputs.fullVersion }}
+      linuxName: ${{ needs.meta.outputs.linuxName }}
+      macName: ${{ needs.meta.outputs.macName }}
+      winName: ${{ needs.meta.outputs.winName }}
+
     steps:
+
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Get version
-        id: version
-        run: echo "::set-output name=tag=${GITHUB_REF#refs/*/}"
+
       - name: Download artifacts
         uses: actions/download-artifact@v3
+
       - name: List Files
         run: |
           ls -laR
+
       - name: Repackage as release artifacts
         run: |
-          mkdir artifacts
-          tar czf artifacts/assimp-linux.tar.gz -C assimp-Linux-gcc .
-          tar czf artifacts/assimp-osx.tar.gz -C assimp-macOS-clang .
-          tar czf artifacts/assimp-win.tar.gz -C assimp-Windows-cl.exe .
-          tar czf artifacts/assimp-headers.tar.gz -C include .
+          mkdir $folder
+          mv */$linuxName $folder
+          mv */$macName $folder
+          mv */assimp-*.dll $folder/$winName
+          tar czf $folder/assimp-headers.tar.gz -C include .
+          tar czf $filename.tar.gz -C "$folder" .
+
       - name: Create release on GitHub
         uses: softprops/action-gh-release@v0.1.14
         with:
@@ -39,9 +97,69 @@ jobs:
             artifacts/*
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Create NuSpec
+        run: |
+          text="<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+          text="$text\n<package xmlns=\"http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd\">"
+          text="$text\n <metadata>"
+          text="$text\n  <id>StirlingLabs.$project</id>"
+          text="$text\n  <version>$version</version>"
+          text="$text\n  <title>$project $version</title>"
+          text="$text\n  <description>"
+          text="$text\n    Assimp is a library to import and export various 3d-model-formats including scene-post-processing to generate missing render data."
+          text="$text\n    This package provides Assimp libraries for convenient cross-platform use in .Net applications."
+          text="$text\n  </description>"
+          text="$text\n  <authors>assimp Team, packaged by Stirling Labs</authors>"
+          text="$text\n  <projectUrl>$url</projectUrl>"
+          text="$text\n  <readme>docs/Readme.md</readme>"
+          text="$text\n  <icon>images/icon.png</icon>"
+          text="$text\n  <tags>$project library SL</tags>"
+          text="$text\n  <license type=\"expression\">BSD-3-Clause</license>"
+          text="$text\n  <requireLicenseAcceptance>true</requireLicenseAcceptance>"
+          text="$text\n  <repository type=\"git\" url=\"$repo\" branch=\"$mainBranch\" commit=\"$commit\" />"
+          text="$text\n </metadata>"
+          text="$text\n <files>"
+          text="$text\n  <file src=\"Readme.md\" target=\"docs/\" />"
+          text="$text\n  <file src=\"icon.png\" target=\"images/\" />"
+          text="$text\n  <file src=\"$folder/$linuxName\" target=\"runtimes/linux-x64/native/\" />"
+          text="$text\n  <file src=\"$folder/$macName\" target=\"runtimes/osx/native/\" />"
+          text="$text\n  <file src=\"$folder/$winName\" target=\"runtimes/win-x64/native/\" />"
+          text="$text\n </files>"
+          text="$text\n</package>"
+          echo -e $text > $project.nuspec
+          cat $project.nuspec
+        env:
+          commit: ${{ github.sha }}
+          version: ${{ needs.meta.outputs.fullVersion }}
+          url: https://github.com/StirlingLabs/assimp
+          repo: ${{ github.repositoryUrl }}
+          mainBranch: master
+
+      - name: Package Files
+        run: |
+          nuget pack $project.nuspec
+          ls -la
+
+      - name: Upload NuPkg
+        run: |
+          dotnet nuget push *.nupkg -k ${{github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json --no-symbols --skip-duplicate || true
+          //dotnet nuget push *.nupkg -k ${{secrets.NUGET_STIRLINGLABS_API_KEY}} -s https://api.nuget.org/v3/index.json --no-symbols --skip-duplicate
+
+      - name: Create release on GitHub
+        uses: softprops/action-gh-release@v0.1.14
+        with:
+          name: ${{ needs.meta.outputs.project}} ${{ needs.meta.outputs.fullVersion }}
+          files: |
+            ${{ env.linuxName }}
+            ${{ env.macName }}
+            ${{ env.winName }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+    
       - name: Dispatch New Release event to Assimp.Net
         run: >
           curl -X POST https://api.github.com/repos/StirlingLabs/Assimp.Net/dispatches
           -H 'Authorization: token ${{secrets.DAEMON_HOOKS}}'
           -H "Accept: application/vnd.github.v3+json"
-          --data '{"event_type":"New assimp Release","client_payload":{"tag":"${{steps.version.outputs.tag}}"}}'
+          --data '{"event_type":"New assimp Release","client_payload":{"tag":"${{needs.meta.outputs.tag}}"}}'
