@@ -63,7 +63,7 @@ jobs:
     env:
       folder: artifacts
       project: ${{ needs.meta.outputs.project }}
-      filename: ${{ needs.meta.outputs.project }}-${{ needs.meta.outputs.fullVersion }}
+      filename: ${{ needs.meta.outputs.project }}-v${{ needs.meta.outputs.fullVersion }}-libs.tar.gz
       linuxName: ${{ needs.meta.outputs.linuxName }}
       macName: ${{ needs.meta.outputs.macName }}
       winName: ${{ needs.meta.outputs.winName }}
@@ -87,14 +87,14 @@ jobs:
           mv */$macName $folder
           mv */assimp-*.dll $folder/$winName
           tar czf $folder/assimp-headers.tar.gz -C include .
-          tar czf $filename.tar.gz -C "$folder" .
+          tar czf $filename -C "$folder" .
 
       - name: Create release on GitHub
         uses: softprops/action-gh-release@v1
         with:
-          name: ${{ github.event.repository.name }}-${{steps.version.outputs.tag}}
+          name: ${{ env.project }} v${{ needs.meta.outputs.fullVersion }}
           files: |
-            artifacts/*
+            ${{ env.filename }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
@@ -144,7 +144,7 @@ jobs:
       - name: Upload NuPkg
         run: |
           dotnet nuget push *.nupkg -k ${{github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json --no-symbols --skip-duplicate || true
-          //dotnet nuget push *.nupkg -k ${{secrets.NUGET_STIRLINGLABS_API_KEY}} -s https://api.nuget.org/v3/index.json --no-symbols --skip-duplicate
+          # dotnet nuget push *.nupkg -k ${{secrets.NUGET_STIRLINGLABS_API_KEY}} -s https://api.nuget.org/v3/index.json --no-symbols --skip-duplicate
 
       - name: Create release on GitHub
         uses: softprops/action-gh-release@v1
