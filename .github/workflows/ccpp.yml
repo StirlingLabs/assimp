@@ -4,7 +4,6 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
   workflow_call:
     inputs:
       ref:
@@ -16,31 +15,37 @@ permissions:
   contents: read # to fetch code (actions/checkout)
 
 jobs:
-  job:
-    name: Build & Test ${{ matrix.name }}
+  debug:
+    name: Debug
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print Debug
+        env:
+          context: ${{ toJson(github) }}
+        run: echo "$context"
+
+  build-and-test:
+    name: ${{ matrix.name }}-build-and-test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        name: [ubuntu-latest-g++, macos-latest-clang++, windows-latest-cl.exe, ubuntu-latest-clang++, ubuntu-gcc-hunter, macos-clang-hunter, windows-msvc-hunter]
+        name: [ubuntu-latest-gcc, macos-latest-clang, windows-latest-clang, ubuntu-latest-clang, ubuntu-gcc-hunter, macos-clang-hunter, windows-msvc-hunter]
         # For Windows msvc, for Linux and macOS let's use the clang compiler, use gcc for Linux.
         include:
-          - name: windows-latest-clang++
+          - name: windows-latest-clang
             os: windows-latest
             cxx: cl.exe
             cc: cl.exe
-            artifact: true
-          - name: ubuntu-latest-clang++
+          - name: ubuntu-latest-clang
             os: ubuntu-latest
             cxx: clang++
             cc: clang
-            artifact: true
-          - name: macos-latest-clang++
+          - name: macos-latest-clang
             os: macos-latest
             cxx: clang++
             cc: clang
-            artifact: true
-          - name: ubuntu-latest-g++
+          - name: ubuntu-latest-gcc
             os: ubuntu-latest
             cxx: g++
             cc: gcc
@@ -67,7 +72,7 @@ jobs:
       env:
         ref: ${{ inputs.ref }}
         sha: ${{ github.sha }}
-      runs: |
+      run: |
         if [ "$ref" == "" ] ; then
           ref=$sha
         fi
@@ -172,11 +177,10 @@ jobs:
     - name: configure and build
       if: false
       uses: lukka/run-cmake@v10
-      env:
-        DXSDK_DIR: '${{ github.workspace }}/DX_SDK'
       with:
         cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
         cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+        # Note: each _args is '' if not building for that platform
         cmakeAppendedArgs: '-GNinja -DCMAKE_BUILD_TYPE=Release ${{ steps.windows_extra_cmake_args.outputs.args }} ${{ steps.macos_extra_cmake_args.outputs.args }} ${{ steps.hunter_extra_cmake_args.outputs.args }}'
         buildWithCMakeArgs: '-- -j 24 -v'
         buildDirectory: '${{ github.workspace }}/build/'
@@ -184,6 +188,7 @@ jobs:
     - name: Configure & Build
       run: |
         mkdir $workingDir && cd $workingDir
+        # Note: each _args is '' if not building for that platform
         cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release ${{ steps.windows_extra_cmake_args.outputs.args }} ${{ steps.macos_extra_cmake_args.outputs.args }} ${{ steps.hunter_extra_cmake_args.outputs.args }}
         cmake --build . -- -j 24 -v
       env:
@@ -192,7 +197,7 @@ jobs:
     - name: Exclude certain tests in Hunter specific builds
       if: contains(matrix.name, 'hunter')
       id: hunter_extra_test_args
-      run: echo "::set-output name=args::--gtest_filter=-utOpenGEXImportExport.Importissue1340_EmptyCameraObject:utColladaZaeImportExport.importBlenFromFileTest"
+      run: echo "args=--gtest_filter=-utOpenGEXImportExport.Importissue1340_EmptyCameraObject:utColladaZaeImportExport.importBlenFromFileTest" >> $GITHUB_OUTPUT
 
     - name: Test
       run: |
