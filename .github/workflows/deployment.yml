@@ -2,161 +2,170 @@ name: Deploy
 on:
   push:
     tags:
-      - 'v[0-9]+.*'
+      - 'v[0-9]+.[0-9]+.*'
 
 jobs:
-  meta:
-    name: Collect Metadata
+  debug:
+    name: Debugging Info
     runs-on: ubuntu-latest
-    outputs:
-      project: ${{ steps.name.outputs.project }}
-      fullVersion: ${{ steps.version.outputs.full }}
-      majorVersion: ${{ steps.version.outputs.major }}
-      linuxName: lib${{ steps.name.outputs.project }}.so.${{ steps.version.outputs.major }}
-      macName: lib${{ steps.name.outputs.project }}.${{ steps.version.outputs.major }}.dylib
-      winName: ${{ steps.name.outputs.project }}-${{ steps.version.outputs.major }}.dll
     steps:
+      - name: Debug
+      if: true
+      env:
+        GITHUB_CONTEXT: ${{ toJSON(github) }}
+      run: echo "$GITHUB_CONTEXT"
 
-      - name: Get Name
-        id: name
-        run: |
-          echo "::set-output name=project::${GITHUB_REPOSITORY#*/}"
-
-      - name: Good Version
-        id: version
-        if: |
-            github.ref_type == 'tag' &&
-            startsWith(github.ref_name, 'v')
-        run: |
-          fullVersion=${version:1}
-          arrayVersion=(${fullVersion//./ })
-          majorVersion=${arrayVersion[0]}
-          echo $fullVersion -> major ${arrayVersion[0]} minor ${arrayVersion[1]} patch ${arrayVersion[2]} package ${arrayVersion[3]}
-          if [[ $majorVersion =~ ^-?[0-9]+$ ]]; then
-            echo "::set-output name=full::$fullVersion"
-            echo "::set-output name=major::$majorVersion"
-          else
-            echo "{{ steps.name.outputs.project }} version ${version:1:2}, derived from -- $version -- is not numeric."
-            exit 1
-          fi
-        env:
-          version: ${{ github.ref_name }}
-
-      - name: Bad Version
-        if: |
-            github.ref_type != 'tag' ||
-            !startsWith(github.ref_name, 'v')
-        run: |
-          echo "The build script expects tag to be in the format v14.0.6"
-          exit 1
+  meta:
+    name: Get Metadata
+    uses: StirlingLabs/Actions/.github/workflows/metadata.yaml@main
 
   build:
     name: Build & Test
+    needs: [ meta ]
     uses: ./.github/workflows/ccpp.yml
 
-  create-release:
-    name: Create Release
-    needs:
-      - meta
-      - build
-    runs-on: ubuntu-latest
+  release:
+    name: Create & Push NuPkg
+    needs: [ meta, build ]
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        include:
+          - rid: linux-x64
+            name: ubuntu-latest-clang
+            filename: ${{ needs.meta.outputs.linuxName }}
+          - rid: osx
+            name: macos-latest-clang
+            filename: ${{ needs.meta.outputs.macName }}
+          - rid: win-x64
+            name: windows-latest-clang
+            filename: ${{ needs.meta.outputs.winName }}
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        shell: bash
     env:
-      folder: artifacts
-      project: ${{ needs.meta.outputs.project }}
-      filename: ${{ needs.meta.outputs.project }}-v${{ needs.meta.outputs.fullVersion }}-libs.tar.gz
-      linuxName: ${{ needs.meta.outputs.linuxName }}
-      macName: ${{ needs.meta.outputs.macName }}
-      winName: ${{ needs.meta.outputs.winName }}
-
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
     steps:
 
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Download artifacts
+      - name: Download artifact
+        id: download
         uses: actions/download-artifact@v3
+        with:
+          name: assimp-${{ matrix.name }}
+
+      - name: Download ancillary files
+        id: ancillary
+        env:
+          rawUrl: 'https://raw.githubusercontent.com/StirlingLabs/assimp/master'
+          readmeFilename: Readme.md
+          iconFilename: icon.png
+        run: |
+          readme="README.md"
+          icon="icon.png"
+          wget --output-document $readme ${rawUrl}/${readmeFilename}
+          wget --output-document $icon ${rawUrl}/${iconFilename}
+          echo "readme=$readme" >> $GITHUB_OUTPUT
+          echo "icon=$icon" >> $GITHUB_OUTPUT
 
       - name: List Files
         run: |
           ls -laR
 
-      - name: Repackage as release artifacts
-        run: |
-          mkdir $folder
-          mv */$linuxName $folder
-          mv */$macName $folder
-          mv */assimp-*.dll $folder/$winName
-          tar czf $folder/assimp-headers.tar.gz -C include .
-          tar czf $filename -C "$folder" .
-
-      - name: Create release on GitHub
-        uses: softprops/action-gh-release@v1
-        with:
-          name: ${{ env.project }} v${{ needs.meta.outputs.fullVersion }}
-          files: |
-            ${{ env.filename }}
+      - name: Create File Lists
+        id: files
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          rid: ${{ matrix.rid }}
+          filename: ${{ steps.download.outputs.download-path }}/${{ matrix.filename }}
+        run: |
+          echo "target=runtimes/${rid}/native/" >> $GITHUB_OUTPUT
 
       - name: Create NuSpec
-        run: |
-          text="<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-          text="$text\n<package xmlns=\"http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd\">"
-          text="$text\n <metadata>"
-          text="$text\n  <id>StirlingLabs.$project</id>"
-          text="$text\n  <version>$version</version>"
-          text="$text\n  <title>$project $version</title>"
-          text="$text\n  <description>"
-          text="$text\n    Assimp is a library to import and export various 3d-model-formats including scene-post-processing to generate missing render data."
-          text="$text\n    This package provides Assimp libraries for convenient cross-platform use in .Net applications."
-          text="$text\n  </description>"
-          text="$text\n  <authors>assimp Team, packaged by Stirling Labs</authors>"
-          text="$text\n  <projectUrl>$url</projectUrl>"
-          text="$text\n  <readme>docs/Readme.md</readme>"
-          text="$text\n  <icon>images/icon.png</icon>"
-          text="$text\n  <tags>$project library SL</tags>"
-          text="$text\n  <license type=\"expression\">BSD-3-Clause</license>"
-          text="$text\n  <requireLicenseAcceptance>true</requireLicenseAcceptance>"
-          text="$text\n  <repository type=\"git\" url=\"$repo\" branch=\"$mainBranch\" commit=\"$commit\" />"
-          text="$text\n </metadata>"
-          text="$text\n <files>"
-          text="$text\n  <file src=\"Readme.md\" target=\"docs/\" />"
-          text="$text\n  <file src=\"icon.png\" target=\"images/\" />"
-          text="$text\n  <file src=\"$folder/$linuxName\" target=\"runtimes/linux-x64/native/\" />"
-          text="$text\n  <file src=\"$folder/$macName\" target=\"runtimes/osx/native/\" />"
-          text="$text\n  <file src=\"$folder/$winName\" target=\"runtimes/win-x64/native/\" />"
-          text="$text\n </files>"
-          text="$text\n</package>"
-          echo -e $text > $project.nuspec
-          cat $project.nuspec
-        env:
-          commit: ${{ github.sha }}
-          version: ${{ needs.meta.outputs.fullVersion }}
-          url: https://github.com/StirlingLabs/assimp
-          repo: ${{ github.repositoryUrl }}
-          mainBranch: master
+        id: nuspec
+        uses: StirlingLabs/CreateNuSpecAction@main
+        with:
+          id: StirlingLabs.${{ needs.meta.outputs.coreName }}.native.${{ matrix.rid }}
+          version: ${{ needs.meta.outputs.numericVersion }}
+          title: ${{ needs.meta.outputs.project }} runtime for ${{ matrix.rid }} ${{ needs.meta.outputs.textVersion }}
+          description: ${{ needs.meta.outputs.description }}. This package provides libraries for ${{ matrix.rid }}.
+          authors: assimp Team, packaged by Stirling Labs
+          fileSources: ${{ steps.download.outputs.download-path }}/${{ matrix.filename }}
+          fileTargets: runtimes/${{ matrix.rid }}/native/${{ matrix.filename }}
+          readme: ${{ steps.ancillary.outputs.readme }}
+          icon: ${{ steps.ancillary.outputs.icon }}
+          tags: SL StirlingLabs library
+          license: BSD-3-Clause
+          gitUrl: ${{ needs.meta.outputs.gitUrl }}
+          gitBranch: ${{ needs.meta.outputs.currentBranch }}
+          gitCommit: ${{ github.sha }}
 
       - name: Package Files
+        env:
+          nuspec: ${{ steps.nuspec.outputs.filename }}
         run: |
-          nuget pack $project.nuspec
+          nuget pack $nuspec
           ls -la
 
-      - name: Upload NuPkg
+      - name: Push NuPkg
+        env:
+          preRelease: ${{ needs.meta.outputs.reRelease }}
         run: |
-          dotnet nuget push *.nupkg -k ${{github.token}} -s https://nuget.pkg.github.com/${{github.repository_owner}}/index.json --no-symbols --skip-duplicate || true
-          # dotnet nuget push *.nupkg -k ${{secrets.NUGET_STIRLINGLABS_API_KEY}} -s https://api.nuget.org/v3/index.json --no-symbols --skip-duplicate
+          if [[ "$preRelease" == "true" ]] ; then
+            key=${{ github.token }}
+            url=https://nuget.pkg.github.com/${{github.repository_owner}}/index.json
+          else
+            echo "Testing only, stopping now."
+            exit 1
+            key=${{secrets.NUGET_STIRLINGLABS_API_KEY}}
+            url=https://api.nuget.org/v3/index.json
+          fi
+          dotnet nuget push *.nupkg --api-key $key --source $url --no-symbols --skip-duplicate
+          [ $? -ne 0 ] && echo "dotnet nuget push to $url returned errorlevel $?" || echo "Success."
+
+  complete:
+    name: Create GitHub Release
+    needs: [ meta, release ]
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      archiveName: ${{ needs.meta.outputs.project }}-v${{ needs.meta.outputs.textVersion }}.tar.gz
+    steps:
+
+      - name: Download artifact
+        id: download
+        uses: actions/download-artifact@v3
+
+      - name: Download ancillary files
+        id: ancillary
+        env:
+          rawUrl: 'https://raw.githubusercontent.com/StirlingLabs/assimp/master'
+          readmeFilename: Readme.md
+          iconFilename: icon.png
+        run: |
+          readme="README.md"
+          icon="icon.png"
+          wget --output-document $readme ${rawUrl}/${readmeFilename}
+          wget --output-document $icon ${rawUrl}/${iconFilename}
+          echo "readme=$readme" >> $GITHUB_OUTPUT
+          echo "icon=$icon" >> $GITHUB_OUTPUT
 
       - name: Create release on GitHub
         uses: softprops/action-gh-release@v1
         with:
           name: ${{ needs.meta.outputs.project}} ${{ needs.meta.outputs.fullVersion }}
           files: |
-            ${{ env.linuxName }}
-            ${{ env.macName }}
-            ${{ env.winName }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-    
+            ${{ needs.meta.outputs.linuxName }}
+            ${{ needs.meta.outputs.macName }}
+            ${{ needs.meta.outputs.winName }}
+            ${{ steps.ancillary.outputs.readme }}
+            ${{ steps.ancillary.outputs.icon }}
+
       - name: Dispatch New Release event to Assimp.Net
         run: >
           curl -X POST https://api.github.com/repos/StirlingLabs/Assimp.Net/dispatches
