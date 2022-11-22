@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ master ]
   workflow_call:
+    inputs:
+      ref:
+        description: Reference to use for checking out
+        default: ${{ github.sha }}
+        type: string
 
 permissions:
   contents: read # to fetch code (actions/checkout)
@@ -20,7 +25,7 @@ jobs:
         name: [ubuntu-latest-g++, macos-latest-clang++, windows-latest-cl.exe, ubuntu-latest-clang++, ubuntu-gcc-hunter, macos-clang-hunter, windows-msvc-hunter]
         # For Windows msvc, for Linux and macOS let's use the clang compiler, use gcc for Linux.
         include:
-          - name: windows-latest-cl.exe
+          - name: windows-latest-clang++
             os: windows-latest
             cxx: cl.exe
             cc: cl.exe
@@ -57,7 +62,22 @@ jobs:
         shell: bash
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Determine Reference
+      id: version
+      env:
+        ref: ${{ inputs.ref }}
+        sha: ${{ github.sha }}
+      runs: |
+        if [ "$ref" == "" ] ; then
+          ref=$sha
+        fi
+        echo "ref=$ref" >> $GITHUB_OUTPUT
+
+    - name: Check out code
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ steps.version.outputs.ref }}
+        submodules: true
     
     - name: Install Dependencies
       run: |
