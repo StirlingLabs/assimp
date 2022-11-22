@@ -43,7 +43,7 @@ Take a look into the https://github.com/assimp/assimp/blob/master/Build.md file.
 ### Ports ###
 * [Android](port/AndroidJNI/README.md)
 * [Python](port/PyAssimp/README.md)
-* [.NET](https://bitbucket.org/Starnick/assimpnet/src/master/)
+* [.NET](https://bitbucket.org/Starnick/assimpnet/src/master/) or [GitHub](https://github.com/StirlingLabs/Assimp.Net)/[NuGet](https://nuget.org/packages/StirlingLabs.Assimp.Net)
 * [Pascal](port/AssimpPascal/Readme.md)
 * [Javascript (Alpha)](https://github.com/makc/assimp2json)
 * [Javascript/Node.js Interface](https://github.com/kovacsv/assimpjs)
