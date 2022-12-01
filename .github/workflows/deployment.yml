@@ -34,13 +34,13 @@ jobs:
         include:
           - rid: linux-x64
             name: ubuntu-latest-clang
-            filename: ${{ needs.meta.outputs.linuxName }}
+            filename: ${{ needs.meta.outputs.linuxBaseName }}
           - rid: osx
             name: macos-latest-clang
-            filename: ${{ needs.meta.outputs.macName }}
+            filename: ${{ needs.meta.outputs.macBaseName }}
           - rid: win-x64
             name: windows-latest-clang
-            filename: ${{ needs.meta.outputs.winName }}
+            filename: ${{ needs.meta.outputs.winBaseName }}
     runs-on: ubuntu-22.04
     defaults:
       run:
@@ -81,6 +81,7 @@ jobs:
           filename: ${{ steps.download.outputs.download-path }}/${{ matrix.filename }}
         run: |
           echo "target=runtimes/${rid}/native/" >> $GITHUB_OUTPUT
+          ls -l $filename
 
       - name: Create NuSpec
         id: nuspec
@@ -117,8 +118,6 @@ jobs:
             key=${{ github.token }}
             url=https://nuget.pkg.github.com/${repoOwner}/index.json
           else
-            echo "Testing only, stopping now."
-            exit 1
             key=${{ secrets.NUGET_STIRLINGLABS_API_KEY }}
             url=https://api.nuget.org/v3/index.json
           fi
