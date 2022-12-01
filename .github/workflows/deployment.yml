@@ -74,14 +74,21 @@ jobs:
         run: |
           ls -laR
 
-      - name: Create File Lists
-        id: files
+      - name: Rename Win DLL
+        id: rename
+        if: contains(matrix.name, 'windows')
         env:
-          rid: ${{ matrix.rid }}
-          filename: ${{ steps.download.outputs.download-path }}/${{ matrix.filename }}
+          filename: ${{ matrix.filename }}
         run: |
-          echo "target=runtimes/${rid}/native/" >> $GITHUB_OUTPUT
-          ls -l $filename
+          ls 2>/dev/null -Ubad1 -- *.dll | wc -l
+          dllCount=$(ls -Ubad1 -- *.dll | wc -l) 2>/dev/null
+          if [[ $dllCount -eq 1 ]] ; then
+            mv *.dll $filename
+          else
+            echo "Could not rename DLL, since $dllCount files were identified."
+            exit 1
+          fi
+          ls -laR
 
       - name: Create NuSpec
         id: nuspec
