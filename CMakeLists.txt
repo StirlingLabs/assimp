@@ -389,7 +389,7 @@ IF (NOT TARGET uninstall AND ASSIMP_INSTALL)
 ENDIF()
 
 # cmake configuration files
-if(${BUILD_SHARED_LIBS})
+if(BUILD_SHARED_LIBS)
   set(BUILD_LIB_TYPE SHARED)
 else()
   set(BUILD_LIB_TYPE STATIC)
