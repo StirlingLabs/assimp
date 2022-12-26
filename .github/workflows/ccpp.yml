@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   job:
-    name: ${{ matrix.name }}-build-and-test
+    name: Build & Test ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -148,7 +148,7 @@ jobs:
         matrixName: ${{ matrix.name }}
     
     - name: Set Windows specific CMake arguments
-      if: contains(matrix.name, 'windows')
+      if: runner.os == 'Windows'
       id: windows_extra_cmake_args
       run: echo "args=-DASSIMP_BUILD_ASSIMP_TOOLS=1 -DASSIMP_BUILD_ASSIMP_VIEW=1"  >> $GITHUB_OUTPUT
     
@@ -180,9 +180,10 @@ jobs:
       id: hunter_extra_test_args
       run: echo "args=--gtest_filter=-utOpenGEXImportExport.Importissue1340_EmptyCameraObject:utColladaZaeImportExport.importBlenFromFileTest" >> $GITHUB_OUTPUT
 
-    - name: test
-      run: cd build/bin && ./unit ${{ steps.hunter_extra_test_args.outputs.args }}
-      shell: bash
+    - name: Test
+      run: |
+        cd build/bin
+        ./unit ${{ steps.hunter_extra_test_args.outputs.args }}
 
     - name: Debug
       env:

@@ -1,3 +1,5 @@
+![assimp](https://raw.githubusercontent.com/StirlingLabs/assimp/master/doc/assimp.jpg)
+
 Open Asset Import Library (assimp)
 ==================================
 A library to import and export various 3d-model-formats including scene-post-processing to generate missing render data.
