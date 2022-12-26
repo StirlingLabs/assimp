@@ -142,6 +142,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //////////////////////////////////////////////////////////////////////////
 /* Define 'ASSIMP_BUILD_DLL_EXPORT' to build a DLL of the library */
 //////////////////////////////////////////////////////////////////////////
+#define ASSIMP_BUILD_DLL_EXPORT
+
 #ifdef ASSIMP_BUILD_DLL_EXPORT
 #define ASSIMP_API __declspec(dllexport)
 #define ASSIMP_API_WINONLY __declspec(dllexport)
