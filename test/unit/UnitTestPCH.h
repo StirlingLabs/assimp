@@ -44,12 +44,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assimp/cimport.h>
 #ifdef _MSC_VER
-#  pragma warning(push)
+#  pragma warning(push, 0)
 #  pragma warning(disable : 4389)
+#else
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wall"
+#  pragma GCC diagnostic ignored "-Wuninitialized"
 #endif
 #include <gtest/gtest.h>
 #ifdef _MSC_VER
 #  pragma warning(pop)
+#else
+#  pragma GCC diagnostic pop
 #endif
 #include <memory>
 #include <math.h>
