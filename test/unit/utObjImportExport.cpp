@@ -39,9 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ---------------------------------------------------------------------------
 */
 
+#include "UnitTestPCH.h"
 #include "AbstractImportExportBase.h"
 #include "SceneDiffer.h"
-#include "UnitTestPCH.h"
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <assimp/Exporter.hpp>
