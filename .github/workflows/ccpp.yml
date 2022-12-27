@@ -21,10 +21,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [ubuntu-latest-gcc, macos-latest-clang, windows-latest-clang, ubuntu-latest-clang, ubuntu-gcc-hunter, macos-clang-hunter, windows-msvc-hunter]
+        name: [ubuntu-latest-gcc, macos-latest-clang, windows-latest-msvc, ubuntu-latest-clang, ubuntu-gcc-hunter, macos-clang-hunter, windows-msvc-hunter]
         # For Windows msvc, for Linux and macOS let's use the clang compiler, use gcc for Linux.
         include:
-          - name: windows-latest-clang
+          - name: windows-latest-msvc
             os: windows-latest
             cxx: cl.exe
             cc: cl.exe

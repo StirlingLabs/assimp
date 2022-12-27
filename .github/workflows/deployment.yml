@@ -39,7 +39,7 @@ jobs:
             name: macos-latest-clang
             filename: ${{ needs.meta.outputs.macBaseName }}
           - rid: win-x64
-            name: windows-latest-clang
+            name: windows-latest-msvc
             filename: ${{ needs.meta.outputs.winBaseName }}
     runs-on: ubuntu-22.04
     defaults:
