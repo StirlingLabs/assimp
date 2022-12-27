@@ -90,6 +90,20 @@ jobs:
           fi
           ls -laR
 
+      - name: Compute Values
+        id: compute
+        env:
+          description: ${{ needs.meta.outputs.description }}
+          rid: ${{ matrix.rid }}
+        run: |
+          prefixDesc=""
+          if [ "$description" != "" ] ; then
+            prefixDesc="${description}.  "
+          fi
+          description="${prefixDesc}This package provides libraries for ${rid}."
+          echo "Description is $description"
+          echo "description=$description" >> $GITHUB_OUTPUT
+
       - name: Create NuSpec
         id: nuspec
         uses: StirlingLabs/CreateNuSpecAction@main
@@ -97,7 +111,7 @@ jobs:
           id: StirlingLabs.${{ needs.meta.outputs.coreName }}.native.${{ matrix.rid }}
           version: ${{ needs.meta.outputs.numericVersion }}
           title: ${{ needs.meta.outputs.project }} runtime for ${{ matrix.rid }} ${{ needs.meta.outputs.textVersion }}
-          description: ${{ needs.meta.outputs.description }}. This package provides libraries for ${{ matrix.rid }}.
+          description: ${{ steps.compute.outputs.description }}
           authors: assimp Team, packaged by Stirling Labs
           fileSources: ${{ steps.download.outputs.download-path }}/${{ matrix.filename }}
           fileTargets: runtimes/${{ matrix.rid }}/native/${{ matrix.filename }}
