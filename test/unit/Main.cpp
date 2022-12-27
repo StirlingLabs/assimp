@@ -6,7 +6,7 @@
 int main(int argc, char *argv[]) {
 
 #ifdef _MSC_VER
-    _putenv("GTEST_BREAK_ON_FAILURE=1");
+    GTEST_FLAG_SET(break_on_failure, true);
     _set_abort_behavior(_WRITE_ABORT_MSG, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
 

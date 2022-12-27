@@ -115,7 +115,7 @@ void DeleteImporterInstanceList(std::vector<BaseImporter *> &out);
 
 #ifndef ASSIMP_BUILD_SINGLETHREADED
 /** Global mutex to manage the access to the log-stream map */
-static std::mutex gLogStreamMutex;
+static std::recursive_mutex gLogStreamMutex {};
 #endif
 
 // ------------------------------------------------------------------------------------------------
@@ -129,7 +129,7 @@ public:
 
     ~LogToCallbackRedirector() {
 #ifndef ASSIMP_BUILD_SINGLETHREADED
-        std::lock_guard<std::mutex> lock(gLogStreamMutex);
+        std::lock_guard<std::recursive_mutex> lock(gLogStreamMutex);
 #endif
         // (HACK) Check whether the 'stream.user' pointer points to a
         // custom LogStream allocated by #aiGetPredefinedLogStream.
@@ -377,9 +377,8 @@ ASSIMP_API void aiAttachLogStream(const aiLogStream *stream) {
     ASSIMP_BEGIN_EXCEPTION_REGION();
 
 #ifndef ASSIMP_BUILD_SINGLETHREADED
-    std::lock_guard<std::mutex> lock(gLogStreamMutex);
+    std::lock_guard<std::recursive_mutex> lock(gLogStreamMutex);
 #endif
-
     LogStream *lg = new LogToCallbackRedirector(*stream);
     gActiveLogStreams[*stream] = lg;
 
@@ -395,7 +394,7 @@ ASSIMP_API aiReturn aiDetachLogStream(const aiLogStream *stream) {
     ASSIMP_BEGIN_EXCEPTION_REGION();
 
 #ifndef ASSIMP_BUILD_SINGLETHREADED
-    std::lock_guard<std::mutex> lock(gLogStreamMutex);
+    std::lock_guard<std::recursive_mutex> lock(gLogStreamMutex);
 #endif
     // find the log-stream associated with this data
     LogStreamMap::iterator it = gActiveLogStreams.find(*stream);
@@ -419,7 +418,7 @@ ASSIMP_API aiReturn aiDetachLogStream(const aiLogStream *stream) {
 ASSIMP_API void aiDetachAllLogStreams(void) {
     ASSIMP_BEGIN_EXCEPTION_REGION();
 #ifndef ASSIMP_BUILD_SINGLETHREADED
-    std::lock_guard<std::mutex> lock(gLogStreamMutex);
+    std::lock_guard<std::recursive_mutex> lock(gLogStreamMutex);
 #endif
     Logger *logger(DefaultLogger::get());
     if (nullptr == logger) {

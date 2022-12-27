@@ -188,6 +188,9 @@ IF(NOT BUILD_SHARED_LIBS)
   SET(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_FIND_LIBRARY_SUFFIXES})
 ELSE()
   MESSAGE(STATUS "Shared libraries enabled")
+  IF (MSVC)
+    set_property(GLOBAL PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  ENDIF()
 ENDIF()
 
 # Define here the needed parameters
