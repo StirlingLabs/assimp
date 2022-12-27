@@ -68,9 +68,9 @@ jobs:
     - name: Install Dependencies
       run: |
         case "${RUNNER_OS}" in
-          Linux)    sudo apt install ninja-build ;;
-          macOS)    brew install ninja ;;
-          Windows)  choco install ninja ;;
+          Linux)    sudo apt install ninja-build libboost-all-dev;;
+          macOS)    brew install ninja boost ;;
+          Windows)  choco install ninja boost-msvc-14.3;;
           *)        echo "Do not recognise ${RUNNER_OS}." && exit 1 ;;
         esac
       env:
