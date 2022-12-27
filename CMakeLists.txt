@@ -140,6 +140,9 @@ IF (BUILD_SHARED_LIBS)
   ADD_COMPILE_DEFINITIONS( ASSIMP_BUILD_SHARED_LIBS )
 ENDIF()
 
+find_package( Boost REQUIRED COMPONENTS thread )
+include_directories( ${Boost_INCLUDE_DIRS} )
+
 IF (WIN32)
   # Use subset of Windows.h
   ADD_DEFINITIONS( -DWIN32_LEAN_AND_MEAN )
