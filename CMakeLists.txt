@@ -141,7 +141,9 @@ IF (BUILD_SHARED_LIBS)
 ENDIF()
 
 find_package( Boost REQUIRED COMPONENTS thread )
-include_directories( ${Boost_INCLUDE_DIRS} )
+if(Boost_FOUND)
+  include_directories( ${Boost_INCLUDE_DIRS} )
+endif()
 
 IF (WIN32)
   # Use subset of Windows.h
