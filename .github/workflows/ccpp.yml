@@ -80,7 +80,7 @@ jobs:
 
     - name: Cache DX SDK
       id: dxcache
-      if: contains(matrix.name, 'windows')
+      if: runner.os == 'Windows'
       uses: actions/cache@v3
       with:
         path: '${{ github.workspace }}/DX_SDK'
@@ -89,12 +89,13 @@ jobs:
           ${{ runner.os }}-DX_SDK
 
     - name: Download DXSetup
-      if: contains(matrix.name, 'windows') && steps.dxcache.outputs.cache-hit != 'true'
+      if: runner.os == 'Windows' && steps.dxcache.outputs.cache-hit != 'true'
       shell: cmd
       run: |
         curl -s -o DXSDK_Jun10.exe --location https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe
         .\DXSDK_Jun10.exe /U /O /F /S /P "${{ github.workspace }}\DX_SDK"
         dir /w 
+
     - name: Set macOS specific CMake arguments
       if: runner.os == 'macOS'
       id: macos_extra_cmake_args
@@ -119,7 +120,7 @@ jobs:
 
     - name: Test
       run: |
-        cd build/bin
+        cd $workingDir/bin
         ./unit
 
     - name: Debug
@@ -132,4 +133,4 @@ jobs:
       if: matrix.artifact == true
       with:
         name: 'assimp-${{ matrix.name }}'
-        path: build/bin/*
+        path: ${{ env.workingDir }}/bin/*
