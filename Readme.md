@@ -1,7 +1,8 @@
 ![assimp](https://raw.githubusercontent.com/StirlingLabs/assimp/master/doc/assimp.jpg)
 
 ![C/C++ CI](https://github.com/StirlingLabs/assimp/workflows/C/C++%20CI/badge.svg)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/5fe5c626067f422da6736dcec209a199)](https://www.codacy.com/gh/StirlingLabs/assimp/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=StirlingLabs/assimp&amp;utm_campaign=Badge_Grade)![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/StirlingLabs/assimp?sort=semver)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/5fe5c626067f422da6736dcec209a199)](https://www.codacy.com/gh/StirlingLabs/assimp/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=StirlingLabs/assimp&amp;utm_campaign=Badge_Grade)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/StirlingLabs/assimp?sort=semver)
 
 This is a closely-tracking [fork of assimp](https://github.com/assimp/assimp), a library to import and export various 3d-model-formats including scene-post-processing to generate missing render data.
 
