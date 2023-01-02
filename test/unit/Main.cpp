@@ -1,9 +1,15 @@
-#include "../../include/assimp/DefaultLogger.hpp"
 #include "UnitTestPCH.h"
+#include "../../include/assimp/DefaultLogger.hpp"
 #include <math.h>
 #include <time.h>
 
 int main(int argc, char *argv[]) {
+
+#ifdef _MSC_VER
+    GTEST_FLAG_SET(break_on_failure, true);
+    _set_abort_behavior(_WRITE_ABORT_MSG, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+#endif
+
     ::testing::InitGoogleTest(&argc, argv);
 
     // seed the randomizer with the current system time

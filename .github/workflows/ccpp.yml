@@ -15,49 +15,30 @@ permissions:
   contents: read # to fetch code (actions/checkout)
 
 jobs:
-  debug:
-    name: Debug
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print Debug
-        env:
-          context: ${{ toJson(github) }}
-        run: echo "$context"
-
-  build-and-test:
-    name: ${{ matrix.name }}-build-and-test
+  job:
+    name: Build & Test ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        name: [ubuntu-latest-gcc, macos-latest-clang, windows-latest-clang, ubuntu-latest-clang, ubuntu-gcc-hunter, macos-clang-hunter, windows-msvc-hunter]
-        # For Windows msvc, for Linux and macOS let's use the clang compiler, use gcc for Linux.
+        # For Windows msvc, for Linux and macOS let's use the clang compiler.
+        name: [macos-latest-clang, windows-latest-msvc, ubuntu-latest-clang]
         include:
-          - name: windows-latest-clang
+          - name: windows-latest-msvc
             os: windows-latest
             cxx: cl.exe
             cc: cl.exe
+            artifact: true
           - name: ubuntu-latest-clang
             os: ubuntu-latest
             cxx: clang++
             cc: clang
+            artifact: true
           - name: macos-latest-clang
             os: macos-latest
             cxx: clang++
             cc: clang
-          - name: ubuntu-latest-gcc
-            os: ubuntu-latest
-            cxx: g++
-            cc: gcc
-          - name: ubuntu-gcc-hunter
-            os: ubuntu-latest
-            toolchain: ninja-gcc-cxx17-fpic
-          - name: macos-clang-hunter
-            os: macos-latest
-            toolchain: ninja-clang-cxx17-fpic
-          - name: windows-msvc-hunter
-            os: windows-latest
-            toolchain: ninja-vs-win64-cxx17
+            artifact: true
 
     env: 
       workingDir: build
@@ -87,48 +68,19 @@ jobs:
     - name: Install Dependencies
       run: |
         case "${RUNNER_OS}" in
-          Linux)    sudo apt install ninja-build ;;
-          macOS)    brew install ninja ;;
-          Windows)  choco install ninja ;;
+          Linux)    sudo apt install ninja-build libboost-all-dev;;
+          macOS)    brew install ninja boost ;;
+          Windows)  choco install ninja boost-msvc-14.3;;
           *)        echo "Do not recognise ${RUNNER_OS}." && exit 1 ;;
         esac
       env:
         HOMEBREW_NO_ENV_HINTS: true
 
-    - uses: lukka/get-cmake@latest
-      if: false
-    
     - uses: ilammy/msvc-dev-cmd@v1
-    
-    - name: Set Compiler Environment
-      if: "!endsWith(matrix.name, 'hunter')"
-      uses: lukka/set-shell-env@v1
-      with:
-        CXX: ${{ matrix.cxx }}
-        CC: ${{ matrix.cc }}
-
-    - name: Set Compiler Environment for Hunter on Windows
-      if: startsWith(matrix.name, 'windows') && endsWith(matrix.name, 'hunter')
-      uses: lukka/set-shell-env@v1
-      with:
-        VS160COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools
-
-    - name: Checkout Hunter toolchains
-      if: endsWith(matrix.name, 'hunter')
-      uses: actions/checkout@v3
-      with:
-        repository: cpp-pm/polly
-        path: cmake/polly
-
-    - name: Remove contrib directory for Hunter builds
-      if: contains(matrix.name, 'hunter')
-      uses: JesseTG/rm@v1.0.3
-      with:
-        path: contrib
 
     - name: Cache DX SDK
       id: dxcache
-      if: contains(matrix.name, 'windows')
+      if: runner.os == 'Windows'
       uses: actions/cache@v3
       with:
         path: '${{ github.workspace }}/DX_SDK'
@@ -137,75 +89,48 @@ jobs:
           ${{ runner.os }}-DX_SDK
 
     - name: Download DXSetup
-      if: contains(matrix.name, 'windows') && steps.dxcache.outputs.cache-hit != 'true'
+      if: runner.os == 'Windows' && steps.dxcache.outputs.cache-hit != 'true'
+      shell: cmd
       run: |
         curl -s -o DXSDK_Jun10.exe --location https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe
         .\DXSDK_Jun10.exe /U /O /F /S /P "${{ github.workspace }}\DX_SDK"
-        dir /w
-      shell: cmd
+        dir /w 
 
     - name: Set macOS specific CMake arguments
       if: runner.os == 'macOS'
       id: macos_extra_cmake_args
       run: |
-        if [[ $matrixName != *"hunter"* ]]; then
-          echo "::set-output name=args::-DCMAKE_OSX_ARCHITECTURES='arm64;x86_64'"
-        else
-          echo Hunter has not been configured to build for Apple Silicon.
-        fi
+        echo "args=-DCMAKE_OSX_ARCHITECTURES='arm64;x86_64'" >> $GITHUB_OUTPUT
       env:
         matrixName: ${{ matrix.name }}
     
     - name: Set Windows specific CMake arguments
       if: runner.os == 'Windows'
       id: windows_extra_cmake_args
-      run: echo "::set-output name=args::-DASSIMP_BUILD_ASSIMP_TOOLS=1 -DASSIMP_BUILD_ASSIMP_VIEW=1"
+      run: echo "args=-DASSIMP_BUILD_ASSIMP_TOOLS=OFF -DASSIMP_BUILD_ASSIMP_VIEW=OFF"  >> $GITHUB_OUTPUT
     
-    - name: Set Hunter specific CMake arguments
-      if: contains(matrix.name, 'hunter')
-      id: hunter_extra_cmake_args
-      run: |
-        if [ -f "$pollyConfig" ]; then
-          echo "Config exists"
-        else
-          echo "Config not found"
-        fi
-        echo "::set-output name=args::-DBUILD_SHARED_LIBS=OFF -DASSIMP_HUNTER_ENABLED=ON -DCMAKE_TOOLCHAIN_FILE=$pollyConfig"
-      env:
-        pollyConfig: "cmake/polly/${{ matrix.toolchain }}.cmake"
-
-    - name: configure and build
-      if: false
-      uses: lukka/run-cmake@v10
-      with:
-        cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-        cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-        # Note: each _args is '' if not building for that platform
-        cmakeAppendedArgs: '-GNinja -DCMAKE_BUILD_TYPE=Release ${{ steps.windows_extra_cmake_args.outputs.args }} ${{ steps.macos_extra_cmake_args.outputs.args }} ${{ steps.hunter_extra_cmake_args.outputs.args }}'
-        buildWithCMakeArgs: '-- -j 24 -v'
-        buildDirectory: '${{ github.workspace }}/build/'
-        
     - name: Configure & Build
       run: |
         mkdir $workingDir && cd $workingDir
-        # Note: each _args is '' if not building for that platform
-        cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release ${{ steps.windows_extra_cmake_args.outputs.args }} ${{ steps.macos_extra_cmake_args.outputs.args }} ${{ steps.hunter_extra_cmake_args.outputs.args }}
+        # Note: each instance of args is empty if not building for that platform
+        cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON ${{ steps.windows_extra_cmake_args.outputs.args }} ${{ steps.macos_extra_cmake_args.outputs.args }}
         cmake --build . -- -j 24 -v
       env:
         DXSDK_DIR: '${{ github.workspace }}/DX_SDK'
 
-    - name: Exclude certain tests in Hunter specific builds
-      if: contains(matrix.name, 'hunter')
-      id: hunter_extra_test_args
-      run: echo "args=--gtest_filter=-utOpenGEXImportExport.Importissue1340_EmptyCameraObject:utColladaZaeImportExport.importBlenFromFileTest" >> $GITHUB_OUTPUT
-
     - name: Test
       run: |
-        cd build/bin
-        ./unit ${{ steps.hunter_extra_test_args.outputs.args }}
+        cd $workingDir/bin
+        ./unit
+
+    - name: Debug
+      env:
+        matrixJson: ${{ toJson(matrix) }}
+        artifact: ${{ matrix.artifact }}
+      run: echo "$matrixJson"
 
     - uses: actions/upload-artifact@v3
       if: matrix.artifact == true
       with:
         name: 'assimp-${{ matrix.name }}'
-        path: build/bin
+        path: ${{ env.workingDir }}/bin/*

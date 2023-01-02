@@ -134,6 +134,17 @@ OPTION ( ASSIMP_IGNORE_GIT_HASH
    OFF
 )
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+IF (BUILD_SHARED_LIBS)
+  ADD_COMPILE_DEFINITIONS( ASSIMP_BUILD_SHARED_LIBS )
+ENDIF()
+
+find_package( Boost REQUIRED COMPONENTS thread )
+if(Boost_FOUND)
+  include_directories( ${Boost_INCLUDE_DIRS} )
+endif()
+
 IF (WIN32)
   # Use subset of Windows.h
   ADD_DEFINITIONS( -DWIN32_LEAN_AND_MEAN )
@@ -183,6 +194,9 @@ IF(NOT BUILD_SHARED_LIBS)
   SET(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_FIND_LIBRARY_SUFFIXES})
 ELSE()
   MESSAGE(STATUS "Shared libraries enabled")
+  IF (MSVC)
+    set_property(GLOBAL PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  ENDIF()
 ENDIF()
 
 # Define here the needed parameters
@@ -389,7 +403,7 @@ IF (NOT TARGET uninstall AND ASSIMP_INSTALL)
 ENDIF()
 
 # cmake configuration files
-if(${BUILD_SHARED_LIBS})
+if(BUILD_SHARED_LIBS)
   set(BUILD_LIB_TYPE SHARED)
 else()
   set(BUILD_LIB_TYPE STATIC)

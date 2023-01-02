@@ -95,7 +95,7 @@ ASSIMP_API unsigned int aiGetCompileFlags() {
 #ifdef ASSIMP_BUILD_DEBUG
     flags |= ASSIMP_CFLAGS_DEBUG;
 #endif
-#ifdef ASSIMP_BUILD_DLL_EXPORT
+#ifdef ASSIMP_BUILD_SHARED_LIBS
     flags |= ASSIMP_CFLAGS_SHARED;
 #endif
 #ifdef _STLPORT_VERSION

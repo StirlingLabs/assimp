@@ -38,9 +38,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ---------------------------------------------------------------------------
 */
+#include "UnitTestPCH.h"
 #include "AssetLib/Obj/ObjFileParser.h"
 #include "AssetLib/Obj/ObjTools.h"
-#include "UnitTestPCH.h"
 
 using namespace ::Assimp;
 

@@ -10,50 +10,58 @@ permissions:
   contents: read # to fetch code (actions/checkout)
 
 jobs:
-  job1:
-    name: adress-sanitizer
+  address:
+    name: Address Sanitizer
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env: 
+      workingDir: build
+    
     steps:
     - uses: actions/checkout@v3
-    - uses: lukka/get-cmake@latest    
-    - uses: lukka/set-shell-env@v1
-      with:
-        CXX: clang++
-        CC: clang
-    
-    - name: configure and build
-      uses: lukka/run-cmake@v3
-      with:
-        cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-        cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-        cmakeAppendedArgs: '-GNinja -DCMAKE_BUILD_TYPE=Debug -DASSIMP_ASAN=ON'
-        buildWithCMakeArgs: '-- -v'
-        buildDirectory: '${{ github.workspace }}/build/'
-    
-    - name: test
-      run: cd build/bin && ./unit
-      shell: bash
 
-  job2:
-    name: undefined-behavior-sanitizer
+    - name: Install Dependencies
+      run: |
+        sudo apt install ninja-build libboost-all-dev
+
+    - name: Configure & Build
+      run: |
+        mkdir $workingDir && cd $workingDir
+        # Note: each instance of args is empty if not building for that platform
+        cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DASSIMP_ASAN=ON
+        cmake --build . -- -j 24 -v
+
+    - name: Test
+      run: |
+        cd $workingDir/bin
+        ./unit
+
+  behaviour:
+    name: Undefined Behaviour Sanitizer
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env: 
+      workingDir: build
+    
     steps:
     - uses: actions/checkout@v3
-    - uses: lukka/get-cmake@latest    
-    - uses: lukka/set-shell-env@v1
-      with:
-        CXX: clang++
-        CC: clang
-    
-    - name: configure and build
-      uses: lukka/run-cmake@v2
-      with:
-        cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-        cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
-        cmakeAppendedArgs: '-GNinja -DCMAKE_BUILD_TYPE=Debug -DASSIMP_UBSAN=ON'
-        buildWithCMakeArgs: '-- -v'
-        buildDirectory: '${{ github.workspace }}/build/'
-    
-    - name: test
-      run: cd build/bin && ./unit
-      shell: bash
+
+    - name: Install Dependencies
+      run: |
+        sudo apt install ninja-build libboost-all-dev
+
+    - name: Configure & Build
+      run: |
+        mkdir $workingDir && cd $workingDir
+        # Note: each instance of args is empty if not building for that platform
+        cmake .. -GNinja -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DASSIMP_UBSAN=ON
+        cmake --build . -- -j 24 -v
+
+    - name: Test
+      run: |
+        cd $workingDir/bin
+        ./unit

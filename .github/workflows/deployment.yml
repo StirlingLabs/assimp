@@ -34,13 +34,13 @@ jobs:
         include:
           - rid: linux-x64
             name: ubuntu-latest-clang
-            filename: ${{ needs.meta.outputs.linuxName }}
+            filename: ${{ needs.meta.outputs.linuxBaseName }}
           - rid: osx
             name: macos-latest-clang
-            filename: ${{ needs.meta.outputs.macName }}
+            filename: ${{ needs.meta.outputs.macBaseName }}
           - rid: win-x64
-            name: windows-latest-clang
-            filename: ${{ needs.meta.outputs.winName }}
+            name: windows-latest-msvc
+            filename: ${{ needs.meta.outputs.winBaseName }}
     runs-on: ubuntu-22.04
     defaults:
       run:
@@ -74,13 +74,35 @@ jobs:
         run: |
           ls -laR
 
-      - name: Create File Lists
-        id: files
+      - name: Rename Win DLL
+        id: rename
+        if: contains(matrix.name, 'windows')
         env:
-          rid: ${{ matrix.rid }}
-          filename: ${{ steps.download.outputs.download-path }}/${{ matrix.filename }}
+          filename: ${{ matrix.filename }}
         run: |
-          echo "target=runtimes/${rid}/native/" >> $GITHUB_OUTPUT
+          ls 2>/dev/null -Ubad1 -- *.dll | wc -l
+          dllCount=$(ls -Ubad1 -- *.dll | wc -l) 2>/dev/null
+          if [[ $dllCount -eq 1 ]] ; then
+            mv *.dll $filename
+          else
+            echo "Could not rename DLL, since $dllCount files were identified."
+            exit 1
+          fi
+          ls -laR
+
+      - name: Compute Values
+        id: compute
+        env:
+          description: ${{ needs.meta.outputs.description }}
+          rid: ${{ matrix.rid }}
+        run: |
+          prefixDesc=""
+          if [ "$description" != "" ] ; then
+            prefixDesc="${description}.  "
+          fi
+          description="${prefixDesc}This package provides libraries for ${rid}."
+          echo "Description is $description"
+          echo "description=$description" >> $GITHUB_OUTPUT
 
       - name: Create NuSpec
         id: nuspec
@@ -89,7 +111,7 @@ jobs:
           id: StirlingLabs.${{ needs.meta.outputs.coreName }}.native.${{ matrix.rid }}
           version: ${{ needs.meta.outputs.numericVersion }}
           title: ${{ needs.meta.outputs.project }} runtime for ${{ matrix.rid }} ${{ needs.meta.outputs.textVersion }}
-          description: ${{ needs.meta.outputs.description }}. This package provides libraries for ${{ matrix.rid }}.
+          description: ${{ steps.compute.outputs.description }}
           authors: assimp Team, packaged by Stirling Labs
           fileSources: ${{ steps.download.outputs.download-path }}/${{ matrix.filename }}
           fileTargets: runtimes/${{ matrix.rid }}/native/${{ matrix.filename }}
@@ -110,15 +132,14 @@ jobs:
 
       - name: Push NuPkg
         env:
-          preRelease: ${{ needs.meta.outputs.reRelease }}
+          preRelease: ${{ needs.meta.outputs.preRelease }}
+          repoOwner: ${{ github.repository_owner }}
         run: |
           if [[ "$preRelease" == "true" ]] ; then
             key=${{ github.token }}
-            url=https://nuget.pkg.github.com/${{github.repository_owner}}/index.json
+            url=https://nuget.pkg.github.com/${repoOwner}/index.json
           else
-            echo "Testing only, stopping now."
-            exit 1
-            key=${{secrets.NUGET_STIRLINGLABS_API_KEY}}
+            key=${{ secrets.NUGET_STIRLINGLABS_API_KEY }}
             url=https://api.nuget.org/v3/index.json
           fi
           dotnet nuget push *.nupkg --api-key $key --source $url --no-symbols --skip-duplicate

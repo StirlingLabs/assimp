@@ -228,35 +228,35 @@ TEST_F( utMetadata, copy_test ) {
 
     // float test
     {
-        float v;
+        float v = 0;
         EXPECT_TRUE( copy.Get( "float", v ) );
         EXPECT_EQ( fv, v );
     }
 
     // double test
     {
-        double v;
+        double v = 0;
         EXPECT_TRUE( copy.Get( "double", v ) );
         EXPECT_EQ( dv, v );
     }
 
     // bool test
     {
-        aiString v;
+        aiString v {};
         EXPECT_TRUE( copy.Get( "aiString", v ) );
         EXPECT_EQ( strVal, v );
     }
 
     // bool test
     {
-        aiVector3D v;
+        aiVector3D v {};
         EXPECT_TRUE( copy.Get( "aiVector3D", v ) );
         EXPECT_EQ( vecVal, v );
     }
 
     // metadata test
     {
-        aiMetadata v;
+        aiMetadata v {};
         EXPECT_TRUE( copy.Get( "aiMetadata", v ) );
         EXPECT_EQ( metaVal, v );
     }

@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assimp/importerdesc.h>
 
 #include <numeric>
+#include <utility>
 
 using namespace Assimp;
 
@@ -135,7 +136,7 @@ void DXFImporter::InternReadFile( const std::string& filename, aiScene* pScene, 
     std::shared_ptr<IOStream> file = std::shared_ptr<IOStream>( pIOHandler->Open( filename) );
 
     // Check whether we can read the file
-    if( file.get() == nullptr ) {
+    if (file == nullptr) {
         throw DeadlyImportError( "Failed to open DXF file ", filename, "");
     }
 
@@ -150,7 +151,7 @@ void DXFImporter::InternReadFile( const std::string& filename, aiScene* pScene, 
     // DXF files can grow very large, so read them via the StreamReader,
     // which will choose a suitable strategy.
     file->Seek(0,aiOrigin_SET);
-    StreamReaderLE stream( file );
+    StreamReaderLE stream( std::move(file) );
 
     DXF::LineReader reader (stream);
     DXF::FileData output;

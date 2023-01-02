@@ -41,10 +41,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ---------------------------------------------------------------------------
 */
 
+#include "UnitTestPCH.h"
+
 #ifndef ASSIMP_MATH_TEST_H
 #define ASSIMP_MATH_TEST_H
-
-#include "UnitTestPCH.h"
 #include <assimp/types.h>
 #include "RandomNumberGeneration.h"
 

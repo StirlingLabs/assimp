@@ -39,11 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ---------------------------------------------------------------------------
 */
 
-#include "TestIOSystem.h"
 #include "UnitTestPCH.h"
+#include "TestIOSystem.h"
 
 #include "Common/BaseProcess.h"
-#include "Common/AssertHandler.h"
+#include <assimp/AssertHandler.h>
 
 using namespace Assimp;
 

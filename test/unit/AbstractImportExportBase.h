@@ -39,10 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ---------------------------------------------------------------------------
 */
 #pragma once
-#ifndef AI_ABSTRACTIMPORTEXPORTBASE_H_INC
-#define AI_ABSTRACTIMPORTEXPORTBASE_H_INC
 
 #include "UnitTestPCH.h"
+
+#ifndef AI_ABSTRACTIMPORTEXPORTBASE_H_INC
+#define AI_ABSTRACTIMPORTEXPORTBASE_H_INC
 
 // ---------------------------------------------------------------------------
 /** Abstract base class to test import and export

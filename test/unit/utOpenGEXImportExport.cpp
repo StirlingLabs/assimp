@@ -39,10 +39,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ---------------------------------------------------------------------------
 */
 
+#include "UnitTestPCH.h"
 #include "AbstractImportExportBase.h"
 
 #include <assimp/scene.h>
-#include "UnitTestPCH.h"
 
 #include <assimp/Importer.hpp>
 
