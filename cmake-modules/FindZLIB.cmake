@@ -34,7 +34,7 @@ clear_if_changed(ZLIB_PREFIX_PATH
 set(ZLIB_LIBRARY_NAMES z zlib zdll)
 get_debug_names(ZLIB_LIBRARY_NAMES)
 
-use_pkgconfig(ZLIB_PKGC zzip-zlib-config)
+use_pkgconfig(ZLIB_PKGC zziplib)
 
 findpkg_framework(ZLIB)
 
