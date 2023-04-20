@@ -387,9 +387,7 @@ struct aiMetadata {
 
         // Return false if the output data type does
         // not match the found value's data type
-        aiMetadataType aiValueType = GetAiType(value);
-        aiMetadataType mValuesType = mValues[index].mType;
-        if (aiValueType != mValuesType) {
+        if (GetAiType(value) != mValues[index].mType) {
             return false;
         }
 
