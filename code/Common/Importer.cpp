@@ -550,8 +550,6 @@ void WriteLogOpening(const std::string& file) {
            << (ASSIMP_BUILD_COMPILER)
 #elif defined(_MSC_VER)
            << "msvc"
-#elif defined(__GNUC__)
-           << "gcc"
 #elif defined(__clang__)
            << "clang"
 #elif defined(__EMSCRIPTEN__)
@@ -560,6 +558,8 @@ void WriteLogOpening(const std::string& file) {
            << "MinGW-w64 32bit"
 #elif defined(__MINGW64__)
            << "MinGW-w64 64bit"
+#elif defined(__GNUC__)
+           << "gcc"
 #else
            << "<unknown compiler>"
 #endif
@@ -568,10 +568,12 @@ void WriteLogOpening(const std::string& file) {
            << " debug"
 #endif
 
-           << (flags & ASSIMP_CFLAGS_NOBOOST ? " noboost" : "")
-           << (flags & ASSIMP_CFLAGS_SHARED ? " shared" : "")
-           << (flags & ASSIMP_CFLAGS_SINGLETHREADED ? " singlethreaded" : "")
-           << (flags & ASSIMP_CFLAGS_DOUBLE_SUPPORT ? " double : " : "single : ");
+           << (flags & ASSIMP_CFLAGS_NOBOOST ? " no" : " with ") << "boost"
+           << (flags & ASSIMP_CFLAGS_SHARED ? " shared" : " static") << " library"
+           << (flags & ASSIMP_CFLAGS_SINGLETHREADED ? " single" : " multi") << "-threaded"
+           << (flags & ASSIMP_CFLAGS_DOUBLE_SUPPORT ? " double" : " single") << "-precision"
+
+           << " [SL]:";
 
     ASSIMP_LOG_DEBUG(stream.str());
 }
