@@ -74,11 +74,14 @@ jobs:
         case "${RUNNER_OS}" in
           Linux)    sudo apt install ninja-build libboost-all-dev libzzip-dev libminizip-dev ;;
           macOS)    brew install ninja boost libzzip minizip ;;
-          Windows)  choco install ninja boost-msvc-14.3 pkgconfiglite ;;
+          Windows)  choco install ninja --no-progress
+                    vcpkg install boost zziplib minizip 
+                    set ;;
           *)        echo "Do not recognise ${RUNNER_OS}." && exit 1 ;;
         esac
       env:
         HOMEBREW_NO_ENV_HINTS: true
+        VCPKG_DISABLE_METRICS: true
 
     - name: MSVC++ Environment
       if: runner.os == 'Windows'
@@ -100,14 +103,15 @@ jobs:
       run: |
         curl -s -o DXSDK_Jun10.exe --location https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe
         .\DXSDK_Jun10.exe /U /O /F /S /P "${{ github.workspace }}\DX_SDK"
-        dir /w 
+        [[ -f .\DXSDK_Jun10.exe ]] || dir /w 
 
     - name: Configure & Build
       run: |
         case "${RUNNER_OS}" in
           Linux)   args="" ;;
           macOS)   args="-DCMAKE_OSX_ARCHITECTURES='arm64;x86_64'" ;;
-          Windows) args="-DASSIMP_BUILD_ASSIMP_TOOLS=OFF -DASSIMP_BUILD_ASSIMP_VIEW=OFF" ;;
+          Windows) args="-DASSIMP_BUILD_ASSIMP_TOOLS=OFF -DASSIMP_BUILD_ASSIMP_VIEW=OFF"
+                   export DCMAKE_TOOLCHAIN_FILE="${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake" ;;
           *)       echo "Do not recognise ${RUNNER_OS}." && exit 1 ;;
         esac
         if [ "$private" == "true" ] ; then
