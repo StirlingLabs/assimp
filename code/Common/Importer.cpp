@@ -527,7 +527,8 @@ void WriteLogOpening(const std::string& file) {
     // sufficient.
     const unsigned int flags = aiGetCompileFlags();
     std::stringstream stream;
-    stream << "Assimp " << aiGetVersionMajor() << "." << aiGetVersionMinor() << "." << aiGetVersionRevision() << " "
+    stream << "Assimp " << aiGetVersionMajor() << "." << aiGetVersionMinor() << "." << aiGetVersionPatch()
+           << ":" << aiGetVersionRevision() << "/" << aiGetBranchName() << " for "
 #if defined(ASSIMP_BUILD_ARCHITECTURE)
            << ASSIMP_BUILD_ARCHITECTURE
 #elif defined(_M_IX86) || defined(__x86_32__) || defined(__i386__)
@@ -545,7 +546,7 @@ void WriteLogOpening(const std::string& file) {
 #else
            << "<unknown architecture>"
 #endif
-           << " "
+           << " built using "
 #if defined(ASSIMP_BUILD_COMPILER)
            << (ASSIMP_BUILD_COMPILER)
 #elif defined(_MSC_VER)
@@ -567,13 +568,12 @@ void WriteLogOpening(const std::string& file) {
 #ifdef ASSIMP_BUILD_DEBUG
            << " debug"
 #endif
+           << (flags & ASSIMP_CFLAGS_NOBOOST ? " without" : " with") << " boost"
+           << (flags & ASSIMP_CFLAGS_SINGLETHREADED ? "/single-threaded" : " multi-threading") << ", "
+           << (flags & ASSIMP_CFLAGS_DOUBLE_SUPPORT ? "double" : "single") << "-precision, "
+           << "as a " << (flags & ASSIMP_CFLAGS_SHARED ? "shared" : "static") << " library "
 
-           << (flags & ASSIMP_CFLAGS_NOBOOST ? " no" : " with ") << "boost"
-           << (flags & ASSIMP_CFLAGS_SHARED ? " shared" : " static") << " library"
-           << (flags & ASSIMP_CFLAGS_SINGLETHREADED ? " single" : " multi") << "-threaded"
-           << (flags & ASSIMP_CFLAGS_DOUBLE_SUPPORT ? " double" : " single") << "-precision"
-
-           << " [SL]:";
+           << "by [SL]";
 
     ASSIMP_LOG_DEBUG(stream.str());
 }
