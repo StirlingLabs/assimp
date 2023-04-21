@@ -398,6 +398,26 @@ struct aiMetadata {
         return true;
     }
 
+    template <>
+    inline bool Get(unsigned index, bool &value) const {
+        // In range assertion
+        if (index >= mNumProperties) {
+            return false;
+        }
+
+        // Return false if the output data type does
+        // not match the found value's data type
+        if (AI_BOOL != mValues[index].mType) {
+            return false;
+        }
+
+        // Otherwise, output the found value and
+        // return true
+        value = *static_cast<bool *>(mValues[index].mData);
+
+        return true;
+    }
+
     template <typename T>
     inline bool Get(const aiString &key, T &value) const {
         // Search for the given key

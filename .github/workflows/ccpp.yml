@@ -78,6 +78,7 @@ jobs:
                     vcpkg install zziplib minizip --triplet x64-windows ;;
           *)        echo "Do not recognise ${RUNNER_OS}." && exit 1 ;;
         esac
+
       env:
         HOMEBREW_NO_ENV_HINTS: true
         VCPKG_DISABLE_METRICS: true
