@@ -70,6 +70,9 @@ jobs:
         submodules: true
     
     - name: Install Dependencies
+      env:
+        HOMEBREW_NO_ENV_HINTS: true
+        VCPKG_DISABLE_METRICS: true
       run: |
         case "${RUNNER_OS}" in
           Linux)    sudo apt install ninja-build libboost-all-dev libzzip-dev libminizip-dev ;;
@@ -78,10 +81,6 @@ jobs:
                     vcpkg install zziplib minizip --triplet x64-windows ;;
           *)        echo "Do not recognise ${RUNNER_OS}." && exit 1 ;;
         esac
-
-      env:
-        HOMEBREW_NO_ENV_HINTS: true
-        VCPKG_DISABLE_METRICS: true
 
     - name: MSVC++ Environment
       if: runner.os == 'Windows'
@@ -106,6 +105,11 @@ jobs:
         [[ -f .\DXSDK_Jun10.exe ]] || dir /w 
 
     - name: Configure & Build
+      env:
+        DXSDK_DIR: '${{ github.workspace }}/DX_SDK'
+        private: ${{ inputs.private }}
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
       run: |
         case "${RUNNER_OS}" in
           Linux)   conf="" ;;
@@ -124,9 +128,6 @@ jobs:
         cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON ${conf}
         echo "---"
         cmake --build . -- -j 24 -v
-      env:
-        DXSDK_DIR: '${{ github.workspace }}/DX_SDK'
-        private: ${{ inputs.private }}
 
     - name: Test
       run: |

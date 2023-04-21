@@ -27,6 +27,9 @@ jobs:
         sudo apt install ninja-build libboost-all-dev
 
     - name: Configure & Build
+      env:
+        CC: clang
+        CXX: clang++
       run: |
         mkdir $workingDir && cd $workingDir
         # Note: each instance of args is empty if not building for that platform
@@ -55,6 +58,9 @@ jobs:
         sudo apt install ninja-build libboost-all-dev
 
     - name: Configure & Build
+      env:
+        CC: clang
+        CXX: clang++
       run: |
         mkdir $workingDir && cd $workingDir
         # Note: each instance of args is empty if not building for that platform
